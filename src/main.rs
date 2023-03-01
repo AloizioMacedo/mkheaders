@@ -4,7 +4,9 @@ use std::{
     fs::{read, read_dir, remove_file, rename, File},
     io::{BufReader, BufWriter, Read, Write},
     path::PathBuf,
+    str::from_utf8,
 };
+use strsim::normalized_levenshtein;
 
 /// CSV Delimiter Converter.
 #[derive(Parser, Debug)]
@@ -78,5 +80,16 @@ fn compare_header(header: &[u8], path: &PathBuf) -> bool {
 
     file.read(&mut buf).expect("File should be readable.");
 
+    let normalized_levenshtein_distance = normalized_levenshtein(
+        from_utf8(&header).expect("Header should be UTF8."),
+        from_utf8(&buf).expect("Beginning of file should be UTF8."),
+    );
+    if normalized_levenshtein_distance > 0.9 && normalized_levenshtein_distance < 1. {
+        println!(
+            "Header and beginning of file {:?} were {:?}% similar. Consider looking at it.",
+            path.file_name().expect("File should have a name."),
+            (normalized_levenshtein_distance * 10000.).round() / 100.,
+        )
+    };
     buf == header
 }
