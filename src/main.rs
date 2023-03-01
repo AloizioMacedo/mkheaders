@@ -16,6 +16,10 @@ struct Cli {
 
     /// Target folder containing files to add header.
     target_folder: String,
+
+    /// Regex to match file names that will be considered for the headers.
+    #[arg(short, long)]
+    regex: Option<String>,
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -23,16 +27,35 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let header = read(PathBuf::from(args.header_file))?;
     let target_folder = args.target_folder;
-    run_through_dir(&header, &target_folder)?;
+    run_through_dir(&header, &target_folder, args.regex)?;
 
     Ok(())
 }
 
-fn run_through_dir(header: &[u8], dir_path: &str) -> Result<(), Box<dyn std::error::Error>> {
+fn run_through_dir(
+    header: &[u8],
+    dir_path: &str,
+    reg: Option<String>,
+) -> Result<(), Box<dyn std::error::Error>> {
     let dir = read_dir(&dir_path)?;
+
+    let reg = if let Some(x) = reg {
+        regex::Regex::new(&x)?
+    } else {
+        regex::Regex::new(r".*")?
+    };
 
     dir.par_bridge().for_each(|file| {
         let file = file.expect("Should be able to access files in folder.");
+        if !reg.is_match(
+            &file
+                .file_name()
+                .to_str()
+                .expect("Name should be convertible to str."),
+        ) {
+            return ();
+        }
+
         prepend_to_file(header, &file.path()).expect("Should be able to prepend to file.");
     });
 
@@ -56,12 +79,12 @@ fn prepend_to_file(header: &[u8], path: &PathBuf) -> Result<(), Box<dyn std::err
 
     temp_writer.write_all(header)?;
 
-    let mut buf = [0; 1000];
+    let mut buf = [0; 4000];
 
     loop {
         let n = reader.read(&mut buf)?;
         temp_writer.write_all(&buf[0..n])?;
-        buf = [0; 1000];
+        buf = [0; 4000];
 
         if n == 0 {
             break;
