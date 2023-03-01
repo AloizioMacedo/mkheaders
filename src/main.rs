@@ -21,7 +21,7 @@ struct Cli {
     #[arg(short, long)]
     regex: Option<String>,
 
-    /// Regex to match file names that will be considered for the headers.
+    /// Flag for deleting the header if it exists rather than prepending.
     #[arg(short, long, default_value_t = false)]
     delete: bool,
 }
