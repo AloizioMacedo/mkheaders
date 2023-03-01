@@ -73,7 +73,7 @@ fn prepend_to_file(header: &[u8], path: &PathBuf) -> Result<(), Box<dyn std::err
 }
 
 fn compare_header(header: &[u8], path: &PathBuf) -> bool {
-    let mut file = File::open(path).expect("lolol");
+    let mut file = File::open(path).expect("Should be able to open header file.");
     let mut buf = vec![0 as u8; header.len()];
 
     file.read(&mut buf).expect("File should be readable.");
