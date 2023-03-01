@@ -1,7 +1,13 @@
 [package]
 name = "mkheaders"
 version = "0.1.0"
+description = "Idempotent, quick CLI app for headers prepending."
+repository = "https://github.com/AloizioMacedo/mkheaders"
+license = "MIT"
+readme = "README.md"
 edition = "2021"
+categories = ["command-line-interface", "command-line-utilities"]
+exclude = ["target", "Cargo.lock"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
