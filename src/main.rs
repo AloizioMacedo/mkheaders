@@ -11,7 +11,7 @@ use strsim::normalized_levenshtein;
 
 const BUFFER_MAX_BYTE_SIZE: usize = 4000;
 
-/// CSV Delimiter Converter.
+/// Idempotent header prepender.
 #[derive(Parser, Debug)]
 struct Cli {
     /// File containing the header.
