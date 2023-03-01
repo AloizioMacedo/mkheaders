@@ -21,7 +21,11 @@ struct Cli {
 
     /// Regex to match file names that will be considered for the headers.
     #[arg(short, long)]
-    regex: Option<String>,
+    matching: Option<String>,
+
+    /// Regex to match file names that will be considered for the headers.
+    #[arg(short, long, default_value_t = false)]
+    recursive: bool,
 
     /// Flag for deleting the header if it exists rather than prepending.
     #[arg(short, long, default_value_t = false)]
@@ -39,7 +43,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let header = read(PathBuf::from(args.header_file))?;
     let target_folder = args.target_folder;
-    run_through_dir(&header, &target_folder, args.regex, args.delete)?;
+    run_through_dir(&header, &target_folder, args.matching, args.delete)?;
 
     Ok(())
 }
