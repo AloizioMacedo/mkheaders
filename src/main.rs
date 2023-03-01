@@ -1,20 +1,35 @@
+use rayon::prelude::*;
 use std::{
-    fs::{remove_file, rename, File},
+    fs::{read_dir, remove_file, rename, File},
     io::{BufReader, BufWriter, Read, Write},
     path::PathBuf,
 };
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    prepend_to_file("/// Oi galera!\n\n", "testing/test.txt")?;
+    run_through_dir("/// Oi galera!\n\n", "testing")?;
+    // prepend_to_file("/// Oi galera!\n\n", "testing/test.txt")?;
 
     Ok(())
 }
 
-fn prepend_to_file(header: &str, path: &str) -> Result<(), Box<dyn std::error::Error>> {
-    let file = File::open(PathBuf::from(&path))?;
+fn run_through_dir(header: &str, dir_path: &str) -> Result<(), Box<dyn std::error::Error>> {
+    let dir = read_dir(&dir_path)?;
+
+    dir.par_bridge().for_each(|file| {
+        let file = file.expect("Should be able to access files in folder.");
+        prepend_to_file(header, &file.path()).expect("Should be able to prepend to file.");
+    });
+
+    Ok(())
+}
+
+fn prepend_to_file(header: &str, path: &PathBuf) -> Result<(), Box<dyn std::error::Error>> {
+    let file = File::open(path)?;
+
     let mut reader = BufReader::new(file);
 
-    let temp_path = path.to_owned() + "_temp_";
+    let parent = path.parent().unwrap();
+    let temp_path = parent.join(path.file_name().unwrap().to_str().unwrap().to_owned() + "_temp_");
     let temp = File::create(&temp_path)?;
 
     let mut temp_writer = BufWriter::new(temp);
