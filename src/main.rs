@@ -1,13 +1,27 @@
+use clap::Parser;
 use rayon::prelude::*;
 use std::{
-    fs::{read_dir, remove_file, rename, File},
+    fs::{read_dir, read_to_string, remove_file, rename, File},
     io::{BufReader, BufWriter, Read, Write},
     path::PathBuf,
 };
 
+/// CSV Delimiter Converter.
+#[derive(Parser, Debug)]
+struct Cli {
+    /// File containing the header.
+    header_file: String,
+
+    /// Target folder containing files to add header.
+    target_folder: String,
+}
+
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    run_through_dir("/// Oi galera!\n\n", "testing")?;
-    // prepend_to_file("/// Oi galera!\n\n", "testing/test.txt")?;
+    let args = Cli::parse();
+
+    let header = read_to_string(PathBuf::from(args.header_file))?;
+    let target_folder = args.target_folder;
+    run_through_dir(&header, &target_folder)?;
 
     Ok(())
 }
