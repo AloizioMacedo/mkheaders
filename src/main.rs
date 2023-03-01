@@ -8,6 +8,8 @@ use std::{
 };
 use strsim::normalized_levenshtein;
 
+const BUFFER_MAX_BYTE_SIZE: usize = 4000;
+
 /// CSV Delimiter Converter.
 #[derive(Parser, Debug)]
 struct Cli {
@@ -104,12 +106,11 @@ fn prepend_to_file(header: &[u8], path: &PathBuf) -> Result<(), Box<dyn std::err
 
     temp_writer.write_all(header)?;
 
-    let mut buf = [0; 4000];
+    let mut buf = [0; BUFFER_MAX_BYTE_SIZE];
 
     loop {
         let n = reader.read(&mut buf)?;
         temp_writer.write_all(&buf[0..n])?;
-        buf = [0; 4000];
 
         if n == 0 {
             break;
@@ -142,12 +143,11 @@ fn remove_from_file(header: &[u8], path: &PathBuf) -> Result<(), Box<dyn std::er
 
     reader.read(&mut buf_to_throw_away)?;
 
-    let mut buf = [0; 4000];
+    let mut buf = [0; BUFFER_MAX_BYTE_SIZE];
 
     loop {
         let n = reader.read(&mut buf)?;
         temp_writer.write_all(&buf[0..n])?;
-        buf = [0; 4000];
 
         if n == 0 {
             break;
