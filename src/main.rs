@@ -57,24 +57,33 @@ fn run_through_dir(
     };
 
     dir.par_bridge().for_each(|file| {
-        let file = file.expect("Should be able to access files in folder.");
-        if !reg.is_match(
-            &file
-                .file_name()
-                .to_str()
-                .expect("Name should be convertible to str."),
-        ) {
-            return ();
-        }
-
-        if should_delete {
-            remove_from_file(header, &file.path()).expect("Should be able to delete from file.");
-        } else {
-            prepend_to_file(header, &file.path()).expect("Should be able to prepend to file.");
-        };
+        process_file(file, &reg, should_delete, header);
     });
 
     Ok(())
+}
+
+fn process_file(
+    file: Result<std::fs::DirEntry, std::io::Error>,
+    reg: &regex::Regex,
+    should_delete: bool,
+    header: &[u8],
+) {
+    let file = file.expect("Should be able to access files in folder.");
+    if !reg.is_match(
+        &file
+            .file_name()
+            .to_str()
+            .expect("Name should be convertible to str."),
+    ) {
+        return ();
+    }
+
+    if should_delete {
+        remove_from_file(header, &file.path()).expect("Should be able to delete from file.");
+    } else {
+        prepend_to_file(header, &file.path()).expect("Should be able to prepend to file.");
+    };
 }
 
 fn prepend_to_file(header: &[u8], path: &PathBuf) -> Result<(), Box<dyn std::error::Error>> {
