@@ -1,5 +1,6 @@
 use clap::Parser;
 use rayon::prelude::*;
+use regex::Regex;
 use std::{
     fs::{read, read_dir, remove_file, rename, File},
     io::{BufReader, BufWriter, Read, Write},
@@ -23,7 +24,7 @@ struct Cli {
     #[arg(short, long)]
     matching: Option<String>,
 
-    /// Regex to match file names that will be considered for the headers.
+    /// Recursively runs through the target directory, visiting inner directories.
     #[arg(short, long, default_value_t = false)]
     recursive: bool,
 
@@ -43,39 +44,48 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let header = read(PathBuf::from(args.header_file))?;
     let target_folder = args.target_folder;
-    run_through_dir(&header, &target_folder, args.matching, args.delete)?;
+    let target_folder = PathBuf::from(target_folder);
 
+    let reg = if let Some(x) = &args.matching {
+        Regex::new(&x).expect("Matching should be valid regex.")
+    } else {
+        Regex::new(r".*").expect("'.*' should be valid regex.")
+    };
+
+    if args.recursive {
+        visit_dirs(&target_folder, &reg, args.delete, &header)?;
+    } else {
+        run_through_dir(&header, &target_folder, reg, args.delete)?;
+    }
     Ok(())
 }
 
 fn run_through_dir(
     header: &[u8],
-    dir_path: &str,
-    reg: Option<String>,
+    dir_path: &PathBuf,
+    reg: Regex,
     should_delete: bool,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let dir = read_dir(&dir_path)?;
 
-    let reg = if let Some(x) = reg {
-        regex::Regex::new(&x)?
-    } else {
-        regex::Regex::new(r".*")?
-    };
-
     dir.par_bridge().for_each(|file| {
+        let file = file.expect("Files in directory should be interactable.");
+
+        if file
+            .metadata()
+            .expect("Should be able to get file metadata.")
+            .is_dir()
+        {
+            return ();
+        }
+
         process_file(file, &reg, should_delete, header);
     });
 
     Ok(())
 }
 
-fn process_file(
-    file: Result<std::fs::DirEntry, std::io::Error>,
-    reg: &regex::Regex,
-    should_delete: bool,
-    header: &[u8],
-) {
-    let file = file.expect("Should be able to access files in folder.");
+fn process_file(file: std::fs::DirEntry, reg: &regex::Regex, should_delete: bool, header: &[u8]) {
     if !reg.is_match(
         &file
             .file_name()
@@ -182,4 +192,32 @@ fn has_header(header: &[u8], path: &PathBuf) -> bool {
         )
     };
     buf == header
+}
+
+fn visit_dirs(
+    dir: &PathBuf,
+    regex: &Regex,
+    should_delete: bool,
+    header: &[u8],
+) -> Result<(), String> {
+    if dir.is_dir() {
+        read_dir(dir)
+            .expect("Should be able to read directory.")
+            .par_bridge()
+            .for_each(|file| {
+                if let Ok(x) = file {
+                    let path = x.path();
+                    if path.is_dir() {
+                        visit_dirs(&path, regex, should_delete, header)
+                            .expect("Unexpected non-directory inside visit_dirs loop");
+                    } else {
+                        process_file(x, regex, should_delete, header);
+                    }
+                }
+            });
+
+        Ok(())
+    } else {
+        Err("Not a directory.".to_owned())
+    }
 }
