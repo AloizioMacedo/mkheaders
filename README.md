@@ -8,6 +8,8 @@ Moreover, it runs as a multi-threaded application with rayon for improved perfor
 
 It is intended to be safe, and it creates a temporary file that only replaces the original one after it is completely filled up. So, theoretically, the worst case when using the app would be to have some dangling temporary files in the folder if you interrupt the execution. (In the future, we will add responses to some signals in order to do some cleanup when possible.)
 
+Nevertheless, **please keep your files under version control** and/or have backups before using the script, particularly because it is still under development.
+
 ## Usage
 
 To add headers to all files inside of a folder called "dir" recursively, run
