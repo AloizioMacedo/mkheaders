@@ -96,10 +96,11 @@ fn prepend_to_file(header: &[u8], path: &PathBuf) -> Result<(), Box<dyn std::err
     let mut reader = BufReader::new(file);
 
     let parent = path.parent().unwrap();
-    let temp_path = parent.join(path.file_name().unwrap().to_str().unwrap().to_owned() + "_temp_");
-    let temp = File::create(&temp_path)?;
+    let temp_file = mktemp::Temp::new_file_in(parent)?;
+    let temp_path = temp_file.as_path();
+    let temp_file = File::create(&temp_file)?;
 
-    let mut temp_writer = BufWriter::new(temp);
+    let mut temp_writer = BufWriter::new(temp_file);
 
     temp_writer.write_all(header)?;
 
@@ -131,10 +132,11 @@ fn remove_from_file(header: &[u8], path: &PathBuf) -> Result<(), Box<dyn std::er
     let mut reader = BufReader::new(file);
 
     let parent = path.parent().unwrap();
-    let temp_path = parent.join(path.file_name().unwrap().to_str().unwrap().to_owned() + "_temp_");
-    let temp = File::create(&temp_path)?;
+    let temp_file = mktemp::Temp::new_file_in(parent)?;
+    let temp_path = temp_file.as_path();
+    let temp_file = File::create(&temp_file)?;
 
-    let mut temp_writer = BufWriter::new(temp);
+    let mut temp_writer = BufWriter::new(temp_file);
 
     let mut buf_to_throw_away = vec![0; header.len()];
 
