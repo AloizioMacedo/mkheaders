@@ -1,7 +1,7 @@
 use clap::Parser;
 use rayon::prelude::*;
 use std::{
-    fs::{read_dir, read_to_string, remove_file, rename, File},
+    fs::{read, read_dir, remove_file, rename, File},
     io::{BufReader, BufWriter, Read, Write},
     path::PathBuf,
 };
@@ -19,14 +19,14 @@ struct Cli {
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args = Cli::parse();
 
-    let header = read_to_string(PathBuf::from(args.header_file))?;
+    let header = read(PathBuf::from(args.header_file))?;
     let target_folder = args.target_folder;
     run_through_dir(&header, &target_folder)?;
 
     Ok(())
 }
 
-fn run_through_dir(header: &str, dir_path: &str) -> Result<(), Box<dyn std::error::Error>> {
+fn run_through_dir(header: &[u8], dir_path: &str) -> Result<(), Box<dyn std::error::Error>> {
     let dir = read_dir(&dir_path)?;
 
     dir.par_bridge().for_each(|file| {
@@ -37,7 +37,11 @@ fn run_through_dir(header: &str, dir_path: &str) -> Result<(), Box<dyn std::erro
     Ok(())
 }
 
-fn prepend_to_file(header: &str, path: &PathBuf) -> Result<(), Box<dyn std::error::Error>> {
+fn prepend_to_file(header: &[u8], path: &PathBuf) -> Result<(), Box<dyn std::error::Error>> {
+    if compare_header(header, path) {
+        return Ok(());
+    }
+
     let file = File::open(path)?;
 
     let mut reader = BufReader::new(file);
@@ -48,7 +52,7 @@ fn prepend_to_file(header: &str, path: &PathBuf) -> Result<(), Box<dyn std::erro
 
     let mut temp_writer = BufWriter::new(temp);
 
-    temp_writer.write_all(header.as_bytes())?;
+    temp_writer.write_all(header)?;
 
     let mut buf = [0; 1000];
 
@@ -66,4 +70,13 @@ fn prepend_to_file(header: &str, path: &PathBuf) -> Result<(), Box<dyn std::erro
     rename(PathBuf::from(&temp_path), path)?;
 
     Ok(())
+}
+
+fn compare_header(header: &[u8], path: &PathBuf) -> bool {
+    let mut file = File::open(path).expect("lolol");
+    let mut buf = vec![0 as u8; header.len()];
+
+    file.read(&mut buf).expect("File should be readable.");
+
+    buf == header
 }
